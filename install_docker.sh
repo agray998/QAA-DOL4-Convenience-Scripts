@@ -2,7 +2,7 @@
 
 # Install common installation dependencies
 sudo apt-get update
-sudo apt-get install -y wget gnupg2 software-properties-common ca-certificates apt-transport-https lsb-release
+sudo apt-get install -y wget gnupg2 software-properties-common curl ca-certificates apt-transport-https lsb-release
 
 # Install Docker components
 curl -fsSL https://get.docker.com | sudo bash
