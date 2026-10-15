@@ -16,4 +16,4 @@ git config --global init.defaultBranch main
 
 # Verify
 git --version
-git config --list | grep -E 'user.name|user.email|'
+git config --list | grep -E 'user.name|user.email'
