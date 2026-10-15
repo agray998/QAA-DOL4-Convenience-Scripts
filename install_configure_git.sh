@@ -13,3 +13,7 @@ sudo apt-get install -y git
 git config --global user.name "$USERNAME"
 git config --global user.email "$USEREMAIL"
 git config --global init.defaultBranch main
+
+# Verify
+git --version
+git config --list | grep -E 'user.name|user.email|'
