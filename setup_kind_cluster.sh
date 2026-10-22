@@ -1,0 +1,75 @@
+#!/bin/bash
+set -euo pipefail
+
+CLUSTER_NAME=lab-cluster
+
+FILE=/config_run
+if [ -f "$FILE" ]; then
+  echo "$FILE exists. Setup has already been run."
+  exit 0
+else
+  echo "$FILE does not exist. Running script"
+fi
+
+echo "[1/6] Install Docker & basics..."
+sudo apt update -y
+sudo apt install -y ca-certificates curl gnupg lsb-release jq git
+if ! command -v docker >/dev/null 2>&1; then
+  sudo apt install -y docker.io
+  sudo systemctl enable --now docker
+fi
+# ensure user can talk to docker now (no relogin)
+if ! groups | grep -qw docker; then
+  sudo usermod -aG docker "$USER"
+fi
+if ! docker ps >/dev/null 2>&1; then
+  exec sg docker -c "$0"  # re-exec inside docker group
+fi
+
+echo "[2/6] Install kubectl (if needed)..."
+if ! command -v kubectl >/dev/null 2>&1; then
+  curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  sudo install -m 0755 kubectl /usr/local/bin/kubectl
+  rm kubectl
+fi
+
+echo "[3/6] Install KinD (if needed)..."
+if ! command -v kind >/dev/null 2>&1; then
+  curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64"
+  chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+fi
+
+echo "[4/6] Create 3-node KinD cluster (1 control-plane + 2 workers) with host port mappings..."
+cat > kind-config.yaml <<EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+- role: worker
+EOF
+
+if ! kind get clusters 2>/dev/null | grep -q $CLUSTER_NAME; then
+  kind create cluster --name $CLUSTER_NAME --config kind-config.yaml
+  # need to capture the config file and give it ql-user
+else
+  echo "[*] KinD cluster $CLUSTER_NAME already exists, skipping creation."
+fi
+kubectl cluster-info --context kind-$CLUSTER_NAME >/dev/null
+
+echo "[5/6] Make life easier"
+echo
+mkdir -p /home/$USER/.kube
+kind get kubeconfig --name $CLUSTER_NAME > /home/$USER/.kube/config
+echo "source <(kubectl completion bash)" >>  /home/$USER/.bashrc
+echo "alias k=kubectl" >> /home/$USER/.bashrc
+echo "complete -F __start_kubectl k" >> /home/$USER/.bashrc
+curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+echo "source <(helm completion bash)" >>  /home/$USER/.bashrc
+echo "set expandtab" >>  /home/$USER/.vimrc
+echo "set tabstop=2" >>  /home/$USER/.vimrc
+echo "sudo chown -R $USER:1000 /home/$USER" >> /home/$USER/.bashrc
+
+echo "[6/6] All done!"
+
+sudo touch $FILE
