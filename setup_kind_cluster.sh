@@ -12,9 +12,8 @@ else
 fi
 
 # Ensure Docker permissions are set
-if ! docker ps >/dev/null 2>&1; then
-  which docker && exec sg docker -c "$0" || exit 1 # re-exec inside docker group if docker is installed, otherwise quit
-fi
+exec sg docker -c "$0" # re-exec inside docker group
+
 
 echo "[1/5] Install kubectl..."
 if ! command -v kubectl >/dev/null 2>&1; then
