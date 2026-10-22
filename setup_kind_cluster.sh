@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 set -euo pipefail
 
 CLUSTER_NAME=lab-cluster
@@ -11,35 +11,25 @@ else
   echo "$FILE does not exist. Running script"
 fi
 
-echo "[1/6] Install Docker & basics..."
-sudo apt update -y
-sudo apt install -y ca-certificates curl gnupg lsb-release jq git
-if ! command -v docker >/dev/null 2>&1; then
-  sudo apt install -y docker.io
-  sudo systemctl enable --now docker
-fi
-# ensure user can talk to docker now (no relogin)
-if ! groups | grep -qw docker; then
-  sudo usermod -aG docker "$USER"
-fi
+# Ensure Docker permissions are set
 if ! docker ps >/dev/null 2>&1; then
-  exec sg docker -c "$0"  # re-exec inside docker group
+  which docker && exec sg docker -c "$0" || exit 1 # re-exec inside docker group if docker is installed, otherwise quit
 fi
 
-echo "[2/6] Install kubectl (if needed)..."
+echo "[1/5] Install kubectl..."
 if ! command -v kubectl >/dev/null 2>&1; then
   curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
   sudo install -m 0755 kubectl /usr/local/bin/kubectl
   rm kubectl
 fi
 
-echo "[3/6] Install KinD (if needed)..."
+echo "[2/5] Install KinD..."
 if ! command -v kind >/dev/null 2>&1; then
-  curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64"
+  curl -Lo ./kind "https://kind.sigs.k8s.io/dl/v0.33.0/kind-linux-amd64"
   chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
 fi
 
-echo "[4/6] Create 3-node KinD cluster (1 control-plane + 2 workers) with host port mappings..."
+echo "[3/5] Create 3-node KinD cluster (1 control-plane + 2 workers) with host port mappings..."
 cat > kind-config.yaml <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -57,7 +47,7 @@ else
 fi
 kubectl cluster-info --context kind-$CLUSTER_NAME >/dev/null
 
-echo "[5/6] Make life easier"
+echo "[4/5] Make life easier"
 echo
 mkdir -p /home/$USER/.kube
 kind get kubeconfig --name $CLUSTER_NAME > /home/$USER/.kube/config
@@ -70,6 +60,6 @@ echo "set expandtab" >>  /home/$USER/.vimrc
 echo "set tabstop=2" >>  /home/$USER/.vimrc
 echo "sudo chown -R $USER:1000 /home/$USER" >> /home/$USER/.bashrc
 
-echo "[6/6] All done!"
+echo "[5/5] All done!"
 
 sudo touch $FILE
