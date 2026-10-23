@@ -11,10 +11,6 @@ else
   echo "$FILE does not exist. Running script"
 fi
 
-# Ensure Docker permissions are set
-exec sg docker -c "$0" # re-exec inside docker group
-
-
 echo "[1/5] Install kubectl..."
 if ! command -v kubectl >/dev/null 2>&1; then
   curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
