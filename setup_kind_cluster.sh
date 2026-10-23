@@ -2,6 +2,7 @@
 set -euo pipefail
 
 CLUSTER_NAME=lab-cluster
+ADMIN=administrator
 
 FILE=/config_run
 if [ -f "$FILE" ]; then
@@ -44,16 +45,16 @@ kubectl cluster-info --context kind-$CLUSTER_NAME >/dev/null
 
 echo "[4/5] Make life easier"
 echo
-mkdir -p /home/$USER/.kube
-kind get kubeconfig --name $CLUSTER_NAME > /home/$USER/.kube/config
-echo "source <(kubectl completion bash)" >>  /home/$USER/.bashrc
-echo "alias k=kubectl" >> /home/$USER/.bashrc
-echo "complete -F __start_kubectl k" >> /home/$USER/.bashrc
+mkdir -p /home/$ADMIN/.kube
+kind get kubeconfig --name $CLUSTER_NAME > /home/$ADMIN/.kube/config
+echo "source <(kubectl completion bash)" >>  /home/$ADMIN/.bashrc
+echo "alias k=kubectl" >> /home/$ADMIN/.bashrc
+echo "complete -F __start_kubectl k" >> /home/$ADMIN/.bashrc
 curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-echo "source <(helm completion bash)" >>  /home/$USER/.bashrc
-echo "set expandtab" >>  /home/$USER/.vimrc
-echo "set tabstop=2" >>  /home/$USER/.vimrc
-echo "sudo chown -R $USER:1000 /home/$USER" >> /home/$USER/.bashrc
+echo "source <(helm completion bash)" >>  /home/$ADMIN/.bashrc
+echo "set expandtab" >>  /home/$ADMIN/.vimrc
+echo "set tabstop=2" >>  /home/$ADMIN/.vimrc
+echo "sudo chown -R $ADMIN:1000 /home/$ADMIN" >> /home/$ADMIN/.bashrc
 
 echo "[5/5] All done!"
 
